@@ -1,6 +1,8 @@
 package aqua.blatt1.broker;
 
 import aqua.blatt1.client.ClientCommunicator;
+import aqua.blatt1.common.Direction;
+import aqua.blatt1.common.FishModel;
 import aqua.blatt1.common.Properties;
 import aqua.blatt1.common.msgtypes.DeregisterRequest;
 import aqua.blatt1.common.msgtypes.HandoffRequest;
@@ -12,9 +14,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class Broker {
-    private ClientCollection<ClientCommunicator> clients;
+    private ClientCollection<InetSocketAddress> clients;
 
     private Endpoint endpoint;
+
+    private int counter;
 
     public Broker() {
         this.endpoint = new Endpoint(Properties.PORT);
@@ -26,29 +30,41 @@ public class Broker {
             var message = this.endpoint.blockingReceive();
             var payload = message.getPayload();
             if (payload instanceof RegisterRequest)
-                register(message.getSender());
+                register(message);
 
             if (payload instanceof DeregisterRequest)
-                deregister(this.clients.indexOf(message.getSender().getHostName()));
+                deregister(message);
 
             if (payload instanceof HandoffRequest)
-                handoffFisch();
+                handoffFish(message);
         }
     }
 
-    private void register(InetSocketAddress addr) {
-        ClientCommunicator newClient = new ClientCommunicator();
-        var id = "tank" + this.clients.size() + 1;
-        this.clients.add("tank" + this.clients.size() + 1, newClient);
-        this.endpoint.send(addr, new RegisterResponse(id));
+    private void register(Message message) {
+        var id = "tank" + counter++;
+        var sender = message.getSender();
+        clients.add(id, sender);
+        endpoint.send(sender, new RegisterResponse(id));
     }
 
-    private void deregister(int id) {
-        this.clients.remove(id);
+    private void deregister(Message message) {
+        var deregisterrequest = (DeregisterRequest) message.getPayload();
+        var clientid = deregisterrequest.getId();
+        var client = clients.indexOf(clientid);
+        clients.remove(client);
     }
 
-    private void handoffFisch() {
+    private void handoffFish(Message message) {
+        var handoffRequest = (HandoffRequest) message.getPayload();
+        InetSocketAddress receiver;
+        FishModel fish = handoffRequest.getFish();
+        var tankindex = clients.indexOf(message.getSender());
+        if (fish.getDirection() == Direction.LEFT)
+            receiver = clients.getLeftNeighorOf(tankindex);
+        else
+            receiver = clients.getRightNeighorOf(tankindex);
 
+        endpoint.send(receiver, handoffRequest);
     }
 
     public static void main(final String[] args) {
