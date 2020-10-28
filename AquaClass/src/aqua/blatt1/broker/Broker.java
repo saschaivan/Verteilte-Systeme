@@ -34,11 +34,8 @@ public class Broker {
 
     private void broker() {
         while(true) {
-            var message = endpoint.blockingReceive();
-            var payload = message.getPayload();
-            executerService.execute(() -> {
-
-            });
+            var message = new BrokerTask();
+            executerService.execute(message);
         }
     }
 
