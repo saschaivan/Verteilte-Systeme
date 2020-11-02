@@ -10,6 +10,7 @@ import aqua.blatt1.common.msgtypes.RegisterRequest;
 import aqua.blatt1.common.msgtypes.RegisterResponse;
 import messaging.Endpoint;
 import messaging.Message;
+import javax.swing.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
@@ -19,9 +20,12 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Broker {
-    public ClientCollection<InetSocketAddress> clients;
-    public Endpoint endpoint;
+    private ClientCollection<InetSocketAddress> clients;
+    private Endpoint endpoint;
+    private int numThreads = 10;
     private int counter;
+    private volatile boolean stopRequested = false;
+    //private Poisoner poisoner;
 
     ExecutorService executerService;
     ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -29,14 +33,17 @@ public class Broker {
     public Broker() {
         endpoint = new Endpoint(Properties.PORT);
         clients = new ClientCollection<>();
-        executerService = Executors.newFixedThreadPool(10);
+        executerService = Executors.newFixedThreadPool(numThreads);
     }
 
     private void broker() {
-        while(true) {
-            var message = new BrokerTask();
-            executerService.execute(message);
+        if (!stopRequested) {
+            while(true) {
+                var brokerTask = new BrokerTask();
+                executerService.execute(brokerTask);
+            }
         }
+        executerService.shutdown();
     }
 
     public static void main(final String[] args) {
