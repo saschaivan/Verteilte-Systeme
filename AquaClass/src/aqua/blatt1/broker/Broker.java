@@ -98,10 +98,10 @@ public class Broker {
         }
 
         private void deregister(Message message) {
-            lock.writeLock().lock();
             var deregisterrequest = (DeregisterRequest) message.getPayload();
             var clientid = deregisterrequest.getId();
             var client = clients.indexOf(clientid);
+            lock.writeLock().lock();
             clients.remove(client);
             lock.writeLock().unlock();
         }
