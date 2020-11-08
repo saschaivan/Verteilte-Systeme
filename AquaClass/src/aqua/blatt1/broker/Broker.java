@@ -51,12 +51,10 @@ public class Broker {
             }
         });
         stopServerThread.start();
-        if (!stopRequested) {
-            while(true) {
-                var message = endpoint.blockingReceive();
-                var brokerTask = new BrokerTask(message);
-                executerService.execute(brokerTask);
-            }
+        while(!stopRequested) {
+            var message = endpoint.blockingReceive();
+            var brokerTask = new BrokerTask(message);
+            executerService.execute(brokerTask);
         }
         System.exit(0);
         executerService.shutdown();
