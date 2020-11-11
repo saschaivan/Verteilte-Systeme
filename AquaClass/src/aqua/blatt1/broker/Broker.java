@@ -6,10 +6,7 @@ import aqua.blatt1.client.ClientCommunicator;
 import aqua.blatt1.common.Direction;
 import aqua.blatt1.common.FishModel;
 import aqua.blatt1.common.Properties;
-import aqua.blatt1.common.msgtypes.DeregisterRequest;
-import aqua.blatt1.common.msgtypes.HandoffRequest;
-import aqua.blatt1.common.msgtypes.RegisterRequest;
-import aqua.blatt1.common.msgtypes.RegisterResponse;
+import aqua.blatt1.common.msgtypes.*;
 import messaging.Endpoint;
 import messaging.Message;
 import javax.swing.*;
@@ -88,13 +85,22 @@ public class Broker {
                 stopRequested = true;
         }
 
+        private void notifyNeighbors(InetSocketAddress address) {
+            InetSocketAddress leftNeighbor = clients.getLeftNeighorOf(clients.indexOf(address));
+            InetSocketAddress rightNeighbor = clients.getLeftNeighorOf(clients.indexOf(address));
+            endpoint.send(leftNeighbor, new NeighborUpdate(address, Direction.RIGHT));
+            endpoint.send(rightNeighbor, new NeighborUpdate(address, Direction.LEFT));
+            endpoint.send(address, new NeighborUpdate(leftNeighbor, Direction.LEFT));
+            endpoint.send(address, new NeighborUpdate(rightNeighbor, Direction.RIGHT));
+        }
+
         private void register(Message message) {
             var id = "tank" + counter++;
             var sender = message.getSender();
             lock.writeLock().lock();
             clients.add(id, sender);
             lock.writeLock().unlock();
-            endpoint.send(sender, new RegisterResponse(id));
+            notifyNeighbors(sender);
         }
 
         private void deregister(Message message) {
@@ -104,6 +110,12 @@ public class Broker {
             lock.writeLock().lock();
             clients.remove(client);
             lock.writeLock().unlock();
+            if(clients.size() > 1) {
+                InetSocketAddress leftNeighbor = clients.getLeftNeighorOf(clients.indexOf(message.getSender()));
+                InetSocketAddress rightNeighbor = clients.getLeftNeighorOf(clients.indexOf(message.getSender()));
+                endpoint.send(leftNeighbor, new NeighborUpdate(rightNeighbor, Direction.RIGHT));
+                endpoint.send(rightNeighbor, new NeighborUpdate(leftNeighbor, Direction.LEFT));
+            }
         }
 
         private void handoffFish(Message message) {
