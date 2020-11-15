@@ -34,6 +34,10 @@ public class ClientCommunicator {
 		public void handOff(FishModel fish, InetSocketAddress address) {
 			endpoint.send(address, new HandoffRequest(fish));
 		}
+
+		public void handOffToken(Token token, InetSocketAddress address) {
+			endpoint.send(address, new Token());
+		}
 	}
 
 	public class ClientReceiver extends Thread {
@@ -63,6 +67,9 @@ public class ClientCommunicator {
 						tankModel.setRightNeighbor(address);
 					}
 				}
+
+				if (msg.getPayload() instanceof Token)
+					tankModel.receiveToken();
 			}
 			System.out.println("Receiver stopped.");
 		}

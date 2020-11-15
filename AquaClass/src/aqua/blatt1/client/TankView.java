@@ -1,11 +1,18 @@
 package aqua.blatt1.client;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.font.FontRenderContext;
+import java.awt.font.GlyphVector;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.awt.image.BufferedImageOp;
+import java.awt.image.ImageObserver;
+import java.awt.image.RenderedImage;
+import java.awt.image.renderable.RenderableImage;
+import java.text.AttributedCharacterIterator;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -42,14 +49,16 @@ public class TankView extends JPanel implements Observer {
 		});
 	}
 
-	@SuppressWarnings("unused")
 	private void drawBorders(Graphics2D g2d) {
-		g2d.drawLine(0, 0, 0, TankModel.HEIGHT);
-		g2d.drawLine(TankModel.WIDTH - 1, 0, TankModel.WIDTH - 1, TankModel.HEIGHT);
+		g2d.drawLine(2, 2, 2, TankModel.HEIGHT);
+		g2d.drawLine(TankModel.WIDTH - 2, 0, TankModel.WIDTH - 2, TankModel.HEIGHT);
 	}
 
 	private void doDrawing(Graphics g) {
 		Graphics2D g2d = (Graphics2D) g;
+
+		if (!tankModel.hasToken())
+			drawBorders(g2d);
 
 		for (FishModel fishModel : tankModel) {
 			g2d.drawImage(fishView.getImage(fishModel), fishModel.getX(), fishModel.getY(), null);
