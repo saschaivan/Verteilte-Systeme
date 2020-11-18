@@ -86,7 +86,7 @@ public class Broker {
                 stopRequested = true;
         }
 
-        private void notifyNeighbors(InetSocketAddress address, String id) {
+        private void notifyNeighbors(InetSocketAddress address) {
             InetSocketAddress leftNeighbor = clients.getLeftNeighorOf(clients.indexOf(address));
             InetSocketAddress rightNeighbor = clients.getLeftNeighorOf(clients.indexOf(address));
             endpoint.send(leftNeighbor, new NeighborUpdate(address, Direction.RIGHT));
@@ -101,7 +101,7 @@ public class Broker {
             lock.writeLock().lock();
             clients.add(id, sender);
             lock.writeLock().unlock();
-            notifyNeighbors(sender, id);
+            notifyNeighbors(sender);
             endpoint.send(sender, new RegisterResponse(id));
             if (id.equals("tank0"))
                 endpoint.send(sender, new Token());
