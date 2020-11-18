@@ -36,7 +36,7 @@ public class ClientCommunicator {
 		}
 
 		public void handOffToken(Token token, InetSocketAddress address) {
-			endpoint.send(address, new Token());
+			endpoint.send(address, token);
 		}
 	}
 
@@ -61,15 +61,17 @@ public class ClientCommunicator {
 				if(msg.getPayload() instanceof NeighborUpdate) {
 					InetSocketAddress address = ((NeighborUpdate) msg.getPayload()).getAddress();
 					Direction direction = ((NeighborUpdate) msg.getPayload()).getDirection();
-					if (direction == Direction.LEFT) {
+
+					if (direction == Direction.LEFT)
 						tankModel.setLeftNeighbor(address);
-					} else {
+
+					if (direction == Direction.RIGHT)
 						tankModel.setRightNeighbor(address);
-					}
+
 				}
 
 				if (msg.getPayload() instanceof Token)
-					tankModel.receiveToken();
+					tankModel.receiveToken((Token) msg.getPayload());
 			}
 			System.out.println("Receiver stopped.");
 		}

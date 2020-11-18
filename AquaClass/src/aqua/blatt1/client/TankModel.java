@@ -22,14 +22,6 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 	protected InetSocketAddress leftNeighbor;
 	private boolean hasToken;
 
-	public InetSocketAddress getLeftNeighbor() {
-		return leftNeighbor;
-	}
-
-	public InetSocketAddress getRightNeighbor() {
-		return rightNeighbor;
-	}
-
 	public void setRightNeighbor(InetSocketAddress address) {
 		this.rightNeighbor = address;
 	}
@@ -122,14 +114,14 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 		forwarder.deregister(id);
 	}
 
-	public void receiveToken() {
+	public void receiveToken(Token token) {
 		hasToken = true;
 		Timer timer = new Timer();
 		TimerTask timertask = new TimerTask() {
 			@Override
 			public void run() {
 				hasToken = false;
-				forwarder.handOffToken(new Token(), leftNeighbor);
+				forwarder.handOffToken(token, leftNeighbor);
 			}
 		};
 		timer.schedule(timertask, 2000);

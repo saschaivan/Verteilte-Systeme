@@ -88,11 +88,11 @@ public class Broker {
 
         private void notifyNeighbors(InetSocketAddress address) {
             InetSocketAddress leftNeighbor = clients.getLeftNeighorOf(clients.indexOf(address));
-            InetSocketAddress rightNeighbor = clients.getLeftNeighorOf(clients.indexOf(address));
-            endpoint.send(leftNeighbor, new NeighborUpdate(address, Direction.RIGHT));
-            endpoint.send(rightNeighbor, new NeighborUpdate(address, Direction.LEFT));
+            InetSocketAddress rightNeighbor = clients.getRightNeighorOf(clients.indexOf(address));
             endpoint.send(address, new NeighborUpdate(leftNeighbor, Direction.LEFT));
             endpoint.send(address, new NeighborUpdate(rightNeighbor, Direction.RIGHT));
+            endpoint.send(leftNeighbor, new NeighborUpdate(address, Direction.RIGHT));
+            endpoint.send(rightNeighbor, new NeighborUpdate(address, Direction.LEFT));
         }
 
         private void register(Message message) {
@@ -101,9 +101,9 @@ public class Broker {
             lock.writeLock().lock();
             clients.add(id, sender);
             lock.writeLock().unlock();
-            notifyNeighbors(sender);
             endpoint.send(sender, new RegisterResponse(id));
-            if (id.equals("tank0"))
+            notifyNeighbors(sender);
+            if (clients.size() == 1)
                 endpoint.send(sender, new Token());
         }
 
@@ -116,7 +116,7 @@ public class Broker {
             lock.writeLock().unlock();
             if(clients.size() > 1) {
                 InetSocketAddress leftNeighbor = clients.getLeftNeighorOf(clients.indexOf(message.getSender()));
-                InetSocketAddress rightNeighbor = clients.getLeftNeighorOf(clients.indexOf(message.getSender()));
+                InetSocketAddress rightNeighbor = clients.getRightNeighorOf(clients.indexOf(message.getSender()));
                 endpoint.send(leftNeighbor, new NeighborUpdate(rightNeighbor, Direction.RIGHT));
                 endpoint.send(rightNeighbor, new NeighborUpdate(leftNeighbor, Direction.LEFT));
             }
@@ -128,12 +128,11 @@ public class Broker {
             FishModel fish = handoffRequest.getFish();
             lock.readLock().lock();
             var tankindex = clients.indexOf(message.getSender());
-            lock.readLock().unlock();
             if (fish.getDirection() == Direction.LEFT)
                 receiver = clients.getLeftNeighorOf(tankindex);
             else
                 receiver = clients.getRightNeighorOf(tankindex);
-
+            lock.readLock().unlock();
             endpoint.send(receiver, handoffRequest);
         }
     }
