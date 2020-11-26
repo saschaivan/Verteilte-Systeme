@@ -5,8 +5,10 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import aqua.blatt1.broker.Broker;
 import aqua.blatt1.common.Direction;
 import aqua.blatt1.common.FishModel;
+import aqua.blatt1.common.msgtypes.CollectSnapshot;
 import aqua.blatt1.common.msgtypes.Token;
 
 public class TankModel extends Observable implements Iterable<FishModel> {
@@ -20,7 +22,15 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 	protected final ClientCommunicator.ClientForwarder forwarder;
 	protected InetSocketAddress rightNeighbor;
 	protected InetSocketAddress leftNeighbor;
-	private boolean hasToken;
+	protected boolean hasToken;
+	protected enum State {IDLE, LEFT, RIGHT, BOTH}
+	protected int localState;
+	protected State state = State.IDLE;
+	protected boolean isInitiator;
+	protected volatile boolean hasSnapshotCollectToken;
+	protected volatile CollectSnapshot snapshotCollector;
+	protected volatile boolean isSnapshotDone;
+	protected int fadingFishCounter;
 
 	public void setRightNeighbor(InetSocketAddress address) {
 		this.rightNeighbor = address;
@@ -56,6 +66,7 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 	synchronized void receiveFish(FishModel fish) {
 		fish.setToStart();
 		fishies.add(fish);
+		localState++;
 	}
 
 	public String getId() {
@@ -129,5 +140,42 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 
 	public boolean hasToken() {
 		return hasToken;
+	}
+
+	public void initiateSnapshot() {
+		this.isInitiator = true;
+		this.localState = this.fishies.size() - fadingFishCounter;
+		this.state = State.BOTH;
+		this.snapshotCollector = new CollectSnapshot();
+		this.hasSnapshotCollectToken = true;
+		this.forwarder.sendSnapshotMarker(this.leftNeighbor);
+		this.forwarder.sendSnapshotMarker(this.rightNeighbor);
+	}
+
+	protected void handleReceivedMarker(String dir) {
+		State direction;
+		if (dir.equals("left"))
+			direction = State.RIGHT;
+		else
+			direction = State.LEFT;
+
+		if (this.state == State.IDLE) {
+			this.localState = this.fishies.size() - fadingFishCounter;
+			this.state = direction;
+			this.forwarder.sendSnapshotMarker(this.leftNeighbor);
+			this.forwarder.sendSnapshotMarker(this.rightNeighbor);
+		} else {
+			if (this.state == State.BOTH) {
+				this.state = direction;
+			} else {
+				this.state = State.IDLE;
+				if (hasSnapshotCollectToken) {
+					this.hasSnapshotCollectToken = false;
+					this.snapshotCollector.addFishies(this.localState);
+					forwarder.sendSnapshotCollectionMarker(this.leftNeighbor, this.snapshotCollector);
+					this.snapshotCollector = null;
+				}
+			}
+		}
 	}
 }

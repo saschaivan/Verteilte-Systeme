@@ -16,8 +16,7 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 import aqua.blatt1.common.FishModel;
 
@@ -35,6 +34,10 @@ public class TankView extends JPanel implements Observer {
 			@Override
 			public void run() {
 				repaint();
+				if (tankModel.isSnapshotDone) {
+					tankModel.isSnapshotDone = false;
+					JOptionPane.showMessageDialog(TankView.this, "Total Fishies: " + tankModel.snapshotCollector.getFishies());
+				}
 			}
 		};
 
