@@ -84,6 +84,11 @@ public class Broker {
                 handoffFish(message);
             if (payload instanceof PoisonPill)
                 stopRequested = true;
+            if (payload instanceof NameResolutionRequest) {
+                NameResolutionRequest r = (NameResolutionRequest) payload;
+                InetSocketAddress address = clients.getClient(clients.indexOf(r.getTankID()));
+                endpoint.send(message.getSender(), new NameResolutionResponse(address, r.getRequestID()));
+            }
         }
 
         private void notifyNeighbors(InetSocketAddress address) {

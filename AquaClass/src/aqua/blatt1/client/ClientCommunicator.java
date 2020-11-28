@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 
 import aqua.blatt1.common.Direction;
 import aqua.blatt1.common.msgtypes.*;
+import jdk.javadoc.doclet.Taglet;
 import messaging.Endpoint;
 import messaging.Message;
 import aqua.blatt1.common.FishModel;
@@ -45,6 +46,18 @@ public class ClientCommunicator {
 
 		public void sendSnapshotCollectionMarker(InetSocketAddress address, CollectSnapshot cs) {
 			endpoint.send(address, cs);
+		}
+
+		public void sendLocationRequest(String fishID, InetSocketAddress address) {
+			endpoint.send(address, new LocationRequest(fishID));
+		}
+
+		public void sendNameResolutionRequest(String tankID, String fishID) {
+			endpoint.send(broker, new NameResolutionRequest(tankID, fishID));
+		}
+
+		public void sendLocationUpdate(String fishID, InetSocketAddress address) {
+			endpoint.send(address, new LocationUpdate(fishID));
 		}
 	}
 
@@ -100,7 +113,20 @@ public class ClientCommunicator {
 						tankModel.snapshotCollector.addFishies(tankModel.localState);
 						tankModel.forwarder.sendSnapshotCollectionMarker(tankModel.leftNeighbor, tankModel.snapshotCollector);
 					}
+				}
 
+				if (msg.getPayload() instanceof LocationRequest) {
+					this.tankModel.locateFishLocally(((LocationRequest)msg.getPayload()).getFishID());
+				}
+
+				if (msg.getPayload() instanceof NameResolutionResponse) {
+					NameResolutionResponse lr = (NameResolutionResponse) msg.getPayload();
+					tankModel.forwarder.sendLocationUpdate(lr.getRequestID(), lr.getAddress());
+				}
+
+				if (msg.getPayload() instanceof LocationUpdate) {
+					LocationUpdate location = (LocationUpdate) msg.getPayload();
+					tankModel.homeAgent.put(location.getFishID(), msg.getSender());
 				}
 			}
 			System.out.println("Receiver stopped.");

@@ -23,7 +23,6 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 	protected InetSocketAddress rightNeighbor;
 	protected InetSocketAddress leftNeighbor;
 	protected boolean hasToken;
-	protected enum State {IDLE, LEFT, RIGHT, BOTH}
 	protected int localState;
 	protected State state = State.IDLE;
 	protected boolean isInitiator;
@@ -31,6 +30,7 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 	protected volatile CollectSnapshot snapshotCollector;
 	protected volatile boolean isSnapshotDone;
 	protected int fadingFishCounter;
+	protected Map<String, InetSocketAddress> homeAgent = new TreeMap<>();
 
 	public void setRightNeighbor(InetSocketAddress address) {
 		this.rightNeighbor = address;
@@ -60,6 +60,8 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 					rand.nextBoolean() ? Direction.LEFT : Direction.RIGHT);
 
 			fishies.add(fish);
+
+			homeAgent.put(fish.getId(), null);
 		}
 	}
 
@@ -67,6 +69,10 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 		fish.setToStart();
 		fishies.add(fish);
 		localState++;
+		if (!homeAgent.containsKey(fish.getId()))
+			forwarder.sendNameResolutionRequest(fish.getTankId(), fish.getId());
+		else
+			homeAgent.put(fish.getId(), null);
 	}
 
 	public String getId() {
@@ -91,14 +97,20 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 				if (!hasToken) {
 					fish.reverse();
 				} else {
-					if (fish.getDirection() == Direction.LEFT)
+					if (fish.getDirection() == Direction.LEFT) {
 						forwarder.handOff(fish, leftNeighbor);
-					if (fish.getDirection() == Direction.RIGHT)
+						fadingFishCounter++;
+					}
+					if (fish.getDirection() == Direction.RIGHT) {
 						forwarder.handOff(fish, rightNeighbor);
+						fadingFishCounter++;
+					}
 				}
 			}
-			if (fish.disappears())
+			if (fish.disappears()) {
 				it.remove();
+				fadingFishCounter--;
+			}
 		}
 	}
 
@@ -177,5 +189,26 @@ public class TankModel extends Observable implements Iterable<FishModel> {
 				}
 			}
 		}
+	}
+
+	protected void locateFishGlobally(String fishID) {
+		InetSocketAddress address = homeAgent.get(fishID);
+		if (address == null)
+			locateFishLocally(fishID);
+		else
+			forwarder.sendLocationRequest(fishID, address);
+	}
+
+	protected void locateFishLocally(String fishID) {
+		Iterator<FishModel> it = iterator();
+		while (it.hasNext()) {
+			FishModel fish = it.next();
+			if (fish.getId().equals(fishID))
+				fish.toggle();
+		}
+	}
+
+	protected enum State {
+		IDLE, LEFT, RIGHT, BOTH
 	}
 }
