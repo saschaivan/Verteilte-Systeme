@@ -12,8 +12,9 @@ import messaging.Message;
 import javax.swing.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Collection;
-import java.util.List;
+import java.sql.Timestamp;
+import java.util.*;
+import java.util.Timer;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -35,6 +36,22 @@ public class Broker {
     }
 
     private void broker() {
+        new Timer(true).schedule(new TimerTask() {
+            @Override
+            public void run() {
+                for (int i = 0; i < clients.size(); i++) {
+                    Calendar leaseEndTimestamp = (Calendar) clients.getLeaseTimeStamp(i).clone();
+                    leaseEndTimestamp.add(Calendar.MILLISECOND, 10000);
+                    if (Calendar.getInstance().after(leaseEndTimestamp)) {
+                        executerService.execute(new BrokerTask(new Message(
+                                new DeregisterRequest(clients.getClientId(i)), clients.getClient(i))
+                        ));
+                    }
+                }
+            }
+        }, 5000, 5000);
+
+
         Thread stopServerThread = new Thread(() -> {
             int a = JOptionPane.showOptionDialog(null,
                     "Press ok to stop Server",
@@ -103,10 +120,16 @@ public class Broker {
         private void register(Message message) {
             var id = "tank" + counter++;
             var sender = message.getSender();
+            if (clients.containsClient(sender)) {
+                int clientindex = clients.indexOf(sender);
+                clients.setLeaseTime(clientindex, Calendar.getInstance());
+                endpoint.send(sender, new RegisterResponse(clients.getClientId(clientindex), 10000));
+                return;
+            }
             lock.writeLock().lock();
-            clients.add(id, sender);
+            clients.add(id, sender, Calendar.getInstance());
             lock.writeLock().unlock();
-            endpoint.send(sender, new RegisterResponse(id));
+            endpoint.send(sender, new RegisterResponse(id, 10000));
             notifyNeighbors(sender);
             if (clients.size() == 1)
                 endpoint.send(sender, new Token());
