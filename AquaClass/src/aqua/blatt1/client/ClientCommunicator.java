@@ -13,10 +13,10 @@ import aqua.blatt1.common.FishModel;
 import aqua.blatt1.common.Properties;
 
 public class ClientCommunicator {
-	private final Endpoint endpoint;
+	private final SecureEndpointSymmetric endpoint;
 
 	public ClientCommunicator() {
-		endpoint = new Endpoint();
+		endpoint = new SecureEndpointSymmetric();
 	}
 
 	public class ClientForwarder {

@@ -7,7 +7,8 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="messaging" level="project" />
     <orderEntry type="library" name="poison" level="application" />
+    <orderEntry type="library" name="messaging" level="project" />
+    <orderEntry type="library" name="aqua-blatt2-poison-src" level="project" />
   </component>
 </module>

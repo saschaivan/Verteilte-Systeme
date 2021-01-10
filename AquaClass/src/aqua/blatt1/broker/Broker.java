@@ -3,6 +3,7 @@ package aqua.blatt1.broker;
 import aqua.blatt1.aqua.blatt2.broker.PoisonPill;
 import aqua.blatt1.aqua.blatt2.broker.Poisoner;
 import aqua.blatt1.client.ClientCommunicator;
+import aqua.blatt1.client.SecureEndpointSymmetric;
 import aqua.blatt1.common.Direction;
 import aqua.blatt1.common.FishModel;
 import aqua.blatt1.common.Properties;
@@ -21,7 +22,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Broker {
     private ClientCollection<InetSocketAddress> clients;
-    private Endpoint endpoint;
+    private SecureEndpointSymmetric endpoint;
     private int numThreads = 6;
     private int counter;
     private volatile boolean stopRequested = false;
@@ -29,7 +30,7 @@ public class Broker {
     ExecutorService executerService;
 
     public Broker() {
-        endpoint = new Endpoint(Properties.PORT);
+        endpoint = new SecureEndpointSymmetric(Properties.PORT);
         clients = new ClientCollection<>();
         executerService = Executors.newFixedThreadPool(numThreads);
         counter = 0;
